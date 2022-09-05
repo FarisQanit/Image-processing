@@ -1,0 +1,187 @@
+import cv2 as cv
+import matplotlib.pyplot as plt
+import numpy as np
+
+from google.colab import drive 
+drive.mount('/content/gdrive') # connecting google drive to google colab
+
+gambar = cv.imread('/content/gdrive/MyDrive/Cielseat.jpg')
+RGB = cv.cvtColor(gambar, cv.COLOR_BGR2RGB) # image in RGB Format
+Grayscale = cv.cvtColor(RGB, cv.COLOR_RGB2GRAY) # image in Grayscale Format
+
+#The RGB set
+plt.figure(figsize=(13,5))
+plt.title('RGB Image')
+plt.subplot(121)
+plt.imshow(RGB)
+plt.subplot(122)
+plt.title('RGB Histogram')
+plt.hist(RGB[:,:,0].ravel(), bins=256, range=(0, 256), color='red', alpha = 0.4)
+plt.hist(RGB[:,:,1].ravel(), bins=256, range=(0, 256), color='green', alpha = 0.4)
+plt.hist(RGB[:,:,2].ravel(), bins=256, range=(0, 256), color='blue', alpha = 0.3)
+plt.show()
+
+#The Grayscale set
+plt.figure(figsize=(13,5))
+plt.title('Image with Grayscale format')
+plt.subplot(121)
+plt.imshow(Grayscale, cmap='gray')
+plt.subplot(122)
+plt.title('Grayscale Histogram')
+plt.hist(Grayscale.ravel(), bins=256, range=(0, 256), color='black', alpha=0.4)
+plt.show()
+
+def mean(K):
+    # Make anew sorted array Grayscale 
+    Graysorted = Grayscale.copy()
+    Graysorted = Graysorted.ravel()
+    Graysorted.sort()
+
+    # Make new empty list for indexing, with start and end
+    arrayindex = []
+    arrayindex.append([])
+    arrayindex[-1].append(0)
+    arrayindex[-1].append(0)
+    arrayindex.append([])
+    arrayindex[-1].append(len(Graysorted))
+    arrayindex[-1].append(256)
+
+    # Fill array arrindex based on image data and K
+    for x in range(int(np.log2(K))):
+        length = len(arrayindex)
+        for x in range(length-1):
+            # Get the partial list to work with
+            partiallst = Graysorted[int(arrayindex[x][0]):int(arrayindex[x+1][0])]
+            # Get index of last mean value in list. Return index+1 of the value
+            where = np.where(Graysorted == int(partiallst.mean()))[0][-1]+1
+            # Insert index and value of mean to arrindex
+            arrayindex.append([])
+            arrayindex[-1].append(where)
+            arrayindex[-1].append(int(partiallst.mean()))
+        arrayindex.sort()
+
+    # Get mean value for each part of the graph
+    for x in range (len(arrayindex)-1):
+        partiallst = Graysorted[int(arrayindex[x][0]):int(arrayindex[x+1][0])]
+        arrayindex[x+1].append(int(partiallst.mean()))
+
+    # Create copy of Grayscale
+    Grayscalequantized = Grayscale.copy()
+
+    # Structure:
+    # 
+    # array.shape[rows][column]
+    # 
+    #   -----> column
+    #  |
+    #  |
+    #  v
+    # rows
+    rows = Grayscalequantized.shape[0]
+    cols = Grayscalequantized.shape[1]
+
+    for x in range (rows):
+        for y in range (cols):
+            # Grayscalequantized[x][y] = 125
+            for k in range (len(arrayindex)-1):
+                if(Grayscalequantized[x][y] > arrayindex[k][1]) and (Grayscalequantized[x][y] <= arrayindex[k+1][1]):
+                    Grayscalequantized[x][y] = arrayindex[k+1][2]
+                    break
+                else:
+                    continue 
+
+    return Grayscalequantized
+
+def median(K):
+    # Make anew sorted array Grayscale 
+    Graysorted = Grayscale.copy()
+    Graysorted = Graysorted.ravel()
+    Graysorted.sort()
+
+    # Make new empty list for indexing, with start and end
+    arrayindex = []
+    arrayindex.append([])
+    arrayindex[-1].append(0)
+    arrayindex[-1].append(0)
+    arrayindex.append([])
+    arrayindex[-1].append(len(Graysorted))
+    arrayindex[-1].append(256)
+
+    # Fill  arrayindex based on image data and K
+    for x in range(int(np.log2(K))):
+        length = len(arrayindex)
+        for x in range(length-1):
+            # Get the partial list to work with
+            partiallst = Graysorted[int(arrayindex[x][0]):int(arrayindex[x+1][0])]
+            # Get index of last median value in list. Return index+1 of the value
+            where = np.where(Graysorted == int(np.median(partiallst)))[0][-1]+1
+            # Insert index and value of mean to arrindex
+            arrayindex.append([])
+            arrayindex[-1].append(where)
+            arrayindex[-1].append(int(np.median(partiallst)))
+        arrayindex.sort()
+
+    # Get mean value for each part of the graph
+    for x in range (len(arrayindex)-1):
+        partiallst = Graysorted[int(arrayindex[x][0]):int(arrayindex[x+1][0])]
+        arrayindex[x+1].append(int(partiallst.mean()))
+
+    # Create copy of Grayscale
+    Grayscalequantized = Grayscale.copy()
+
+    # Structure:
+    # 
+    # array.shape[rows][column]
+    # 
+    #   -----> column
+    #  |
+    #  |
+    #  v
+    # rows
+    rows = Grayscalequantized.shape[0]
+    cols = Grayscalequantized.shape[1]
+
+    for x in range (rows):
+        for y in range (cols):
+            # Grayscalequantized[x][y] = 125
+            for k in range (len(arrayindex)-1):
+                if(Grayscalequantized[x][y] > arrayindex[k][1]) and (Grayscalequantized[x][y] <= arrayindex[k+1][1]):
+                    Grayscalequantized[x][y] = arrayindex[k+1][2]
+                    break
+                else:
+                    continue 
+    
+    return Grayscalequantized
+
+def showQuan(the_img, imgtarget, K, val):
+    the_title = str(imgtarget + " diquantisasi dengan " + val + " -- K = " + str(K))
+
+    plt.figure(figsize=(13,5))
+    plt.title('Grayscale Image')
+    plt.subplot(121)
+    plt.title(the_title)
+    plt.imshow(the_img, cmap='gray')
+    plt.subplot(122)
+    plt.title(the_title)
+    plt.hist(the_img.ravel(), bins=256, range=(0, 256), color='black', alpha=0.7)
+    plt.show()
+
+def meanQuantization(K, imgtarget):
+    val = "Mean"
+    showQuan(mean(K),imgtarget, K, val)
+
+def medianQuantization(K, imgtarget):
+    val = "Median"
+    showQuan(median(K),imgtarget, K, val)
+    
+    img_target = 'Cielseat'
+
+#Output with mean  quantization
+meanQuantization(2,img_target)
+meanQuantization(4,img_target)
+meanQuantization(8,img_target)
+
+#Output with median quantization
+medianQuantization(2,img_target)
+medianQuantization(4,img_target)
+medianQuantization(8,img_target)
